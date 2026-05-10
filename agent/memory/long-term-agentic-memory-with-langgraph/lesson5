@@ -1,0 +1,598 @@
+0:01
+In the last lesson, we added an episodic memory in the form of few-shot examples.
+0:06
+In this lesson, we're going to add in the third
+0:09
+and final type of memory, procedural memory.
+0:12
+This will be in the form of the system prompts
+0:15
+that exist in the main agent and also in the triage agent.
+0:19
+So as a reminder, procedural memories
+0:21
+are instructions about how to do things.
+0:24
+And the representation that that takes in agents
+0:27
+is typically in the form of prompt instructions.
+0:30
+We've been using hardcoded values for these throughout the lesson so far.
+0:34
+In this lesson,
+0:35
+we're going to make it possible to update those prompts automatically.
+0:39
+Let's dive in.
+0:41
+The start should look pretty similar to before.
+0:43
+We're going to load some environment variables.
+0:45
+We're going to define our profile.
+0:47
+And we're going to define our prompt instructions here.
+0:50
+This is what we're going to be updating over time.
+0:53
+So these are specific instructions for when to ignore,
+0:56
+when to notify, when to respond, and how the overall agent should behave.
+1:00
+And so these are hardcoded here and have been hardcoded here.
+1:03
+And we're still going to run this cell to keep them here.
+1:07
+But we're going to use them in a slightly different way.
+1:09
+And we'll dive into that later.
+1:13
+This email is an
+1:14
+example email. Here we're going to load the in memory store
+1:18
+the long-term memory store which we're going to use for everything.
+1:21
+We are going to define our helpers for the triage step.
+1:26
+And now we get down here.
+1:28
+And here we can see these are where our updated memories
+1:31
+for the procedural steps are going to go.
+1:35
+And so this is our this is our template.
+1:36
+This is the same as before.
+1:37
+But I'm just pointing out that this is where they are going to go.
+1:41
+We're going to define a bunch of stuff for this triage step.
+1:46
+We've got our LLM router.
+1:47
+We've got our user prompt.
+1:49
+We're defining the state of the graph.
+1:50
+We're defining some things.
+1:52
+And then this is our triage router node.
+1:54
+And this is what we're eventually going to modify.
+1:57
+So right now, you can see that we're passing in the prompt instructions here.
+2:01
+What we're going to do is we're going to modify it so that we are
+2:05
+retrieving these from the long-term memory store and then passing them in.
+2:11
+Why are we doing this?
+2:12
+We're going to do this so that we can update them from outside the agent.
+2:18
+And then that way if we update them, they're automatically pulled in
+2:21
+to future runs.
+2:29
+Okay.
+2:29
+So, how are we going to modify this.
+2:32
+First, let's get our LangGraph user ID.
+2:36
+And we're going to use this as the namespace for the procedural memories.
+2:40
+So we're getting our LangGraph user ID from the config.
+2:43
+And we're creating this namespace which is a tuple.
+2:46
+So make sure that you've got this comma here.
+2:51
+We're now going to try to fetch from the store
+2:53
+instructions for when to ignore emails in the triage step.
+2:57
+And so we're going to get from the store with this given namespace
+3:01
+this key triage ignore.
+3:04
+Now, this may not always exist in the store.
+3:07
+And so what we're going to do is we're going to check to see if it exists.
+3:11
+If it does we're going to use the value there.
+3:13
+If it doesn't, we're going to add a default.
+3:16
+This will make sure that when we run this agent with a new user ID,
+3:21
+even if we haven't already set up the store, it will add the default
+3:24
+there.
+3:25
+So here we have the logic if the result is none.
+3:28
+So if nothing exists in the store for these ignore triage instructions,
+3:33
+we are going to put something there.
+3:34
+We're going to put something in that namespace with that key.
+3:36
+And it's going to be a dictionary with one key prompt.
+3:39
+And the values are going to be
+3:41
+those default prompt instructions that we had for ignore.
+3:44
+And then are we're going to set ignore prompt,
+3:46
+which we're going to use later on to that default value.
+3:51
+If the result does exist we're going to get the value from prompt.
+3:54
+And that's what we're going to use.
+3:56
+And so then we're going to pass it in
+3:59
+down here.
+4:00
+So let's update this to be ignore prompt.
+4:05
+We now want to do the same for notify.
+4:08
+So we are going to now
+4:09
+use the same namespace but with a different key, triage notify.
+4:13
+And we're going to get notify prompt.
+4:15
+Similarly, we're going to update the formatting down below to use this value.
+4:21
+And finally we're going to do the same for the respond prompt.
+4:25
+So now it's triage
+4:26
+respond is the key.
+4:27
+And respond prompt is the new variable we get.
+4:30
+And we're going to insert that here.
+4:35
+So we've just updated our agent to use prompts that are stored
+4:39
+in long-term memory.
+4:41
+Note that there's nothing that updates them yet.
+4:43
+We're going to go over that later on.
+4:45
+But this just updated
+4:48
+this triage router
+4:50
+to use stuff in long-term memory.
+4:53
+And this is step number one.
+4:55
+After that we're going to go on to the rest of the agent.
+4:58
+So we're going to import the tool.
+4:59
+We're going to create the three different tools we have.
+5:02
+We are going to import the memory tools and use those.
+5:06
+We are going to have the system message for the agent.
+5:10
+And now we get down to create prompt.
+5:13
+So, create prompt is where we are also going to update.
+5:16
+So right now, we're passing in the prompt instructions with agent instructions.
+5:20
+And we're going to do the same thing as above.
+5:22
+We're going to update it.
+5:23
+So it looks for these in the long-term memory store
+5:26
+first.
+5:37
+All right.
+5:37
+So now we've modified it in a few ways.
+5:40
+We've passed in the config. And the store.
+5:42
+We're going to use the config to get the LangGraph user ID.
+5:45
+And that's going to create the namespace that we look in.
+5:48
+The key that we're going to use is agent instructions.
+5:51
+And we're going to do similar logic as before.
+5:53
+We're going to first try to get this result from the store.
+5:57
+If it does not exist,
+5:58
+we're going to put a default one in there using prompt instructions as the default.
+6:02
+If it does, we're actually just going to use the value that's there.
+6:05
+And then what we're going to do, is we're going to update the system message.
+6:08
+And rather than using the prompt instructions here,
+6:12
+we are going to
+6:13
+use the prompt value that we get from above.
+6:17
+With that now done we can create our main agent.
+6:20
+So we can import create react agent.
+6:22
+We define a bunch of tools and then we create the email agent.
+6:27
+So now this agent is all set up.
+6:30
+It's pulling its instructions from long-term memory
+6:33
+rather than from those hardcoded values.
+6:36
+Why does this matter?
+6:37
+This matters because now we can update those values
+6:40
+outside the agent and automatically update the agent's instructions.
+6:45
+So now let's see how to do that.
+6:48
+Let's work with this example email.
+6:51
+Hi John, urgent issue.
+6:53
+Your service is down.
+6:55
+Let's define the config that we're going to use.
+6:57
+In this case it has the LangGraph user id of Lance.
+7:03
+Let's now run this email agent over this email.
+7:06
+And we can see that we get a response.
+7:11
+If we look through the messages we can see that we have a human message.
+7:15
+Then the AI message that is calling the write email tool
+7:19
+and it's writing this email.
+7:20
+And then the response from the tool message saying that we sent this email.
+7:24
+And then a final response from the agent.
+7:27
+Let's take a look at the existing long-term memory
+7:30
+for these instructions.
+7:33
+If we look at the lance namespace with the key
+7:36
+agent instructions, we can see these default instructions.
+7:41
+These are the same as where in the prompt instructions at the top of the notebook.
+7:46
+Let's look and we should see that the triage respond is also populated.
+7:52
+As is triage
+7:53
+ignore.
+7:57
+And as is triage notify.
+8:00
+If we wanted to, we could update these instructions
+8:03
+manually and pass in new instructions.
+8:07
+But that's kind of a manual update.
+8:08
+That's not really memory in terms of how we think about it
+8:10
+in terms of agents. With agents, we think about in
+8:14
+LLM updating these based on some user feedback.
+8:18
+So that's exactly what we're going to do.
+8:22
+So we're going to import from Langmem
+8:24
+this function called create multi prompt optimizer.
+8:27
+As the name suggests, this is going to create
+8:30
+an optimizer that optimizes multiple prompts.
+8:34
+The reason we want to optimize multiple prompts is that in this assistant
+8:38
+there are actually four different prompt instructions that we have.
+8:41
+And we might want to update any number of them,
+8:45
+but we don't get feedback for each instruction.
+8:48
+Rather, we get feedback for the whole overall agent.
+8:53
+So we're going to take this overall feedback
+8:55
+and first determine which prompts, if any, should be updated
+8:58
+based on this feedback and then update them.
+9:03
+First, we need a list
+9:04
+of the conversations that we're going to use to update the prompts.
+9:08
+For this, we're going to take the response messages.
+9:10
+So this is the trajectory that we have above.
+9:13
+And then we're going to add in some feedback.
+9:15
+This can be in a few different formats but the simplest format is just a string.
+9:20
+So here we're going to take in this feedback.
+9:21
+Always sign your emails John Doe.
+9:27
+We now need to define
+9:28
+the prompts that we want to potentially update.
+9:33
+Each entry in this list should have four keys.
+9:36
+First, is the name of the prompt.
+9:38
+Next, is the value of the prompt.
+9:41
+Next, is update instructions.
+9:42
+These are instructions for how you should update the prompt.
+9:45
+And then finally, we have the when to update key.
+9:49
+These are instructions for when you should update the prompt.
+9:51
+So under the hood what's going to happen is we're first going to use the
+9:55
+when to update value to determine which prompts, if any, to update.
+10:00
+If we determined that it's worth updating, we're then going to use
+10:03
+the update instructions and apply that to the original prompt
+10:07
+to get a new updated prompt.
+10:10
+Here, we've filled these in for the four prompts
+10:12
+that we want to potentially update.
+10:14
+So we have the main agent prompt,
+10:16
+which we're going to get the most current values from this agent
+10:19
+instructions key.
+10:22
+The update
+10:22
+instructions are just going to be keep the instructions short and to the point.
+10:26
+And we're actually going to use that for all of them.
+10:28
+And then when to update. Updates prompt
+10:30
+whenever there is feedback on how the agent should write emails or schedule
+10:34
+events.
+10:36
+What about triage ignore?
+10:38
+Similarly, we're going to name it that.
+10:40
+We're going to fetch the most recent value from long-term memory.
+10:43
+Update instructions are the same.
+10:45
+And then update this prompt
+10:46
+whenever there's feedback on which emails should be ignored.
+10:50
+Triaged notify and triage respond are pretty similar,
+10:52
+except rather than updating it
+10:54
+when there is information about when the email should be ignored,
+10:57
+we're going to update it when there's information
+10:59
+about when the user should be notified or responded.
+11:03
+After we do
+11:04
+this, we're going to create the Multi prompt optimizer.
+11:07
+We're going to use Anthropic's Claude three sonnet model to optimize the prompt.
+11:11
+We've found that it's currently the best for this type of prompt optimization.
+11:16
+Kind equals prompt memory is the algorithm
+11:19
+that we're going to use to update the prompt.
+11:21
+This is the simplest one.
+11:23
+And you should look at the API reference
+11:24
+of Langmem for more complicated examples.
+11:28
+This optimizer itself is a graph.
+11:31
+So we're going to invoke it by passing in these trajectories,
+11:35
+and then these prompts.
+11:36
+And we're going to get back this updated variable.
+11:40
+Let's take a look at what this returns.
+11:43
+We can see that it returns a list of prompts.
+11:47
+These have all the same keys as before.
+11:50
+So the name prompt update instructions and when to update.
+11:54
+Now some of these prompts may be different than before.
+11:57
+And we can actually see that here.
+11:59
+The first main agent prompt.
+12:00
+It's prompt is now different.
+12:03
+When sending emails always sign them as John Doe.
+12:06
+This is the feedback that we passed in.
+12:09
+Once we have these updated prompts,
+12:12
+we can loop through them and update the long term memory if appropriate.
+12:17
+So here you can see that we're comparing the updated prompt to the old prompt.
+12:21
+And we're comparing the prompt values.
+12:24
+If they're not the same,
+12:25
+we're going to update the store with their instructions.
+12:28
+Here, I've only added logic to handle what would have happened
+12:31
+if the name of the prompt that's been updated is Main Agent.
+12:35
+But remember, there's three other prompts that could potentially be updated.
+12:38
+They shouldn't, so they shouldn't throw an error.
+12:41
+But for completeness, you'll probably want to implement all three conditions.
+12:47
+And we can see that we print out updated main agent prompt as we went along.
+12:50
+And we didn't raise any value errors, so no other prompts got updated.
+12:57
+If we now check the long-term
+12:59
+memory for these agent instructions, we can see that it now has this sentence,
+13:02
+when sending emails, always sign them as John Doe.
+13:06
+We can now rerun the email agent
+13:09
+and see what happens.
+13:12
+If we take a look at the messages,
+13:14
+we can see that when we write the email we now sign it John Doe.
+13:19
+So it's remembering and using these instructions.
+13:23
+Let's look at another example.
+13:26
+We now have this email.
+13:28
+And we invoke the email agent.
+13:29
+And it responds to this email above.
+13:34
+What if we didn't want it to respond to this?
+13:37
+We could then create a list of conversations
+13:39
+with the response messages as the conversation,
+13:42
+and we could give the feedback:
+13:44
+Ignore any emails from Alice Jones.
+13:48
+We then define the list of prompts,
+13:50
+and we're running this again,
+13:51
+because the old list of prompts that we defined
+13:53
+before has the outdated instructions for the main agent.
+13:57
+And so we're just running it again to get the most updated instructions
+13:59
+for the agent at this point in time.
+14:03
+After that, we can invoke this optimizer agent
+14:05
+with the conversations we have above and the prompts.
+14:10
+We can now run this code snippet to update the prompts in long-term memory.
+14:14
+Notice that we've added this new section which handles how to deal with the fact,
+14:19
+if the updated name of the prompt that we're updating is the ignore step.
+14:23
+And here we can see that this was the only prompt of the four
+14:27
+that we decided to update.
+14:31
+And if we
+14:32
+rerun the email agent from here, we can see that it actually
+14:35
+now ignores it, because it's using the same email from Alice Jones.
+14:39
+And it now has the instructions to ignore emails from there.
+14:45
+To see what exactly these instructions are,
+14:47
+we can look into the long-term memory itself, in the triage ignore key,
+14:51
+and we can see that this is now updated to contain ignore
+14:55
+all emails from Alice Jones.
+14:59
+This is the end of this lesson.
+15:02
+This puts together all the types of memory
+15:04
+into this email agent.
+15:07
+Now is a good time to try this out.
+15:09
+Try passing in other conversations with other feedback and see
+15:13
+which parts of memory get updated and what they get updated to.

@@ -1,0 +1,482 @@
+0:01
+In this lesson, we're going to start with the email agent
+0:04
+that we created previously.
+0:05
+And we're going to add in tools to allow it to operate on semantic memory.
+0:10
+Now as a reminder, semantic memory normally stores facts about the user.
+0:15
+So we're going to use these tools to learn facts about users.
+0:19
+We're then going to store them in a long-term memory store.
+0:22
+And then we're going to add a separate tool to search over these facts.
+0:25
+Let's see it in code.
+0:27
+So here we have a lot of set up from the previous lesson.
+0:30
+And this should look all the same.
+0:32
+We're going to load some environment variables.
+0:33
+We're going to define our profile.
+0:35
+We're going to define our prompt instructions.
+0:37
+An example email.
+0:39
+We're going to set up the router.
+0:40
+Nothing's changed here.
+0:42
+We're going to import some prompts.
+0:44
+We're going to define our three tools that we had before.
+0:50
+Now we're going to
+0:50
+start to define our tools for managing memory.
+0:54
+The first thing we're going to want to do
+0:55
+is properly set up our long-term memory store.
+0:59
+And so for this lesson we're just going to use an in-memory store
+1:02
+a store that will store everything in memory.
+1:04
+And so we're going to import that from LangGraph.
+1:10
+When we initialize
+1:11
+it, we're going to want to make sure that we pass in this index param.
+1:16
+Here we're passing in an embedding model
+1:19
+to use to index the memories that we store.
+1:22
+So we're going to use the OpenAI text embedding
+1:25
+three small model.
+1:30
+Afterwards,
+1:30
+we're going to import two functions from Langmem.
+1:33
+Langmem is a wrapper on top of LangGraph for working with memory.
+1:38
+These two functions are going to be called create manage
+1:41
+memory tool and create search memory tool.
+1:44
+And these will be tools for managing and searching over memories.
+1:50
+To create them,
+1:51
+it's pretty simple.
+1:52
+We're just going to define the namespace that we want
+1:55
+these tools to operate on.
+1:59
+So the namespace that we're going to use
+2:01
+for both is email assistant as the first value.
+2:04
+Then this templated LangGraph user ID and I'll come back to that
+2:08
+as a second value and then collection as the third value.
+2:12
+So what exactly is this?
+2:15
+When we invoke the agent now we're going to pass in a LangGraph
+2:18
+user ID as part of the runtime configuration.
+2:22
+And that's going to be use to namespace this memory.
+2:26
+That way if we're dealing with emails
+2:28
+from multiple users, we can pretty easily
+2:32
+just have different collections of memories for different users.
+2:35
+We wouldn't want them to be the same.
+2:37
+And so here's where we define that
+2:39
+we store them separately
+2:41
+because these are just LangChain tools,
+2:44
+we can inspect them and see what attributes they have.
+2:47
+So they should have a name so we can see that manage
+2:50
+memory tools name is called manage memory.
+2:54
+They should also probably have a description.
+2:56
+So we can see that this is the description of how to use the tool.
+3:00
+Let's print it out to make it a little bit more legible.
+3:04
+Here, we can see that it contains instructions
+3:06
+for creating, updating or deleting
+3:09
+persistent memories.
+3:14
+We can also take a look at the arguments to this tool.
+3:18
+We can see that it takes in content,
+3:21
+then an action.
+3:22
+So the action can be create, update or delete and then an ID.
+3:27
+And so basically what's happening is these memories are managed by IDs.
+3:32
+And so when we call to this tool we can pass in the ID of a memory,
+3:38
+the action we want to take on it
+3:39
+or whether we should update it or create it or delete it,
+3:43
+and then the content of that memory as well.
+3:48
+If we look at the search memory tool, we can see that's called search memory.
+3:52
+The description is pretty simple.
+3:53
+It's just search your long-term memories
+3:55
+for information relevant to your current context.
+4:00
+And the arguments are also pretty simple.
+4:02
+It's just a query, a limit for the number of memories
+4:05
+that we want to return, some offset, and then some filter
+4:08
+if we want.
+4:12
+Let's now go on to define the agent. Here,
+4:15
+we're going to take the agent system prompt
+4:18
+and we're actually going to modify it
+4:19
+a little bit because now we need to add in these two extra tools.
+4:24
+So this is slightly modified
+4:26
+from the previous lesson.
+4:29
+We're still going to have the similar create prompt function,
+4:33
+which basically creates this same message and appends it
+4:36
+before the list of messages in the state.
+4:40
+After that, we can build our agent as normal.
+4:43
+We'll import this create react agent function.
+4:47
+We'll create our list of tools which now contains
+4:50
+this manage memory tool in the search memory tool.
+4:53
+And then we'll create our react agent which we'll now call response agent.
+4:57
+And notice that we're also passing in the store
+5:00
+to ensure that this is passed to the agent.
+5:04
+Let's now test the agent.
+5:06
+The first thing we're going to want to do is actually define a config
+5:11
+that we're going to pass to the agent with some runtime configuration.
+5:14
+And it's going to have to have this LangGraph user ID.
+5:18
+So let's create that
+5:19
+first. You can change this value which I'm calling lance
+5:22
+to be anything you want.
+5:27
+Let's now call it
+5:27
+with a message that has some information that we should probably remember.
+5:31
+Like Jim is my friend.
+5:33
+And notice here I'm passing in the config
+5:35
+as a second parameter.
+5:41
+Let's take a look at the response.
+5:42
+If we print out the list of messages, we can see that we have this human message
+5:46
+which we pass in.
+5:47
+And then we have this AI message.
+5:49
+It calls the manage memory tool with the arguments content.
+5:54
+Jim is John Doe's friend.
+5:56
+Notice that we're not specifying an action,
+5:59
+because the default is to create,
+6:01
+and we're not specifying an ID because it will create one by default.
+6:06
+We get
+6:07
+back a message that we created this memory with this user ID.
+6:11
+And then the final message is that it's just recorded this information
+6:14
+about Jim.
+6:18
+Let's try this with another input.
+6:20
+Let's ask now who is Jim?
+6:22
+And notice that we're passing in the same config
+6:25
+as before.
+6:29
+Let's take a look
+6:30
+at the list of messages that we get back as a response.
+6:33
+Who is Jim? This is our user message.
+6:36
+We then get a message from the AI which calls a tool.
+6:39
+It calls this search memory tool with a query parameter of Jim.
+6:44
+We get back this list of messages.
+6:47
+In this case, we only have one message,
+6:49
+which is this namespace memory at this value.
+6:53
+This key is the ID, and then the content is Jim is John Doe's friend.
+7:00
+And then we get back
+7:00
+a response from the AI message that summarizes the above interaction.
+7:04
+So it says, based on my memory search, I can see that Jim is John Doe's friend.
+7:13
+If we want to inspect the store
+7:15
+directly, we can. We can call list namespaces,
+7:18
+and we can see that this one namespace exists.
+7:22
+And remember,
+7:22
+this is the template that we defined above where this is the LineGraph user ID.
+7:26
+Let me pass in Lance for that value.
+7:31
+If we now call search on this namespace
+7:33
+we can see the different items that exist there.
+7:37
+So we can see that we only have one item because we've only remembered one piece
+7:40
+of information, and its value has this content:
+7:44
+Jim is John Doe's friend.
+7:48
+Notice the score here is none.
+7:50
+That's because we haven't passed in a query parameter.
+7:54
+Let's pass one in, and let's see what
+7:56
+the score is.
+8:01
+If we pass in a query of Jim,
+8:03
+we can now see that the score is 0.5 something.
+8:08
+The score is calculated as cosine similarity using the embedding model
+8:12
+that we passed in when we created the store in the first place.
+8:17
+Now is a good time to pause.
+8:18
+Use this response agent directly.
+8:21
+Try querying it with different things after to see if it remembers,
+8:25
+and you can also inspect the store itself.
+8:30
+Now, let's go on
+8:30
+to creating the rest of the agent.
+8:34
+So this should all look very similar to the previous lesson,
+8:37
+because not much is changing.
+8:38
+We've mostly just added these tools to the response agent.
+8:42
+So first, we're creating the state.
+8:43
+This is the same as before.
+8:45
+We're making some imports, same as before.
+8:48
+We're creating this triage router node, same as before.
+8:55
+We then create the email agent.
+8:57
+This is the same as before with two changes.
+9:00
+First, I've changed this to be response agent.
+9:03
+So before, in previous lesson two this was called agent.
+9:06
+I've just updated the variable name.
+9:07
+And so it's changed it here. Nothing.
+9:10
+Nothing big.
+9:11
+But next, I'm going to change the compile step.
+9:15
+So I'm going to pass in store equals store.
+9:17
+When I create the email agent.
+9:19
+This is giving it access to that long-term memory store
+9:22
+that our memory tools are going to use.
+9:25
+If I display the email agent I get the same graph as before.
+9:29
+So nothing's changed here.
+9:32
+I can create this example email input.
+9:35
+And then when I call the email agent this is now also going to change slightly.
+9:40
+I'm going to remember to pass in my configuration this contains
+9:44
+the LangGraph user ID that will we will use in the memory tools.
+9:49
+We can see that it
+9:49
+runs and that at first classifies that it should respond.
+9:53
+And then it continues down that path.
+9:58
+Once it's
+9:59
+finished, let's take a look at the list of messages
+10:02
+that are in the agent's trajectory so we can see what it does.
+10:06
+So the first message there is a human message.
+10:08
+This is the input of the email.
+10:10
+We then get back an AI message where it's writing an email.
+10:14
+So it has a tool call with this write email and it's passing in
+10:18
+and all these arguments.
+10:18
+And so you can see the content of the email that it writes here.
+10:22
+We then get back a tool message saying that it sent that email successfully.
+10:26
+We then call the AI message again.
+10:28
+And we see that it calls the Managed Memory tool,
+10:31
+and it creates this memory with this content follow up needed.
+10:35
+Alice Smith inquired about missing API endpoints.
+10:39
+We get back a tool message that it created that memory,
+10:42
+and then we get back the final response
+10:43
+from the agent that it's taking two actions.
+10:45
+It sent a response to Alice, and it's created a memory entry.
+10:50
+So this is the agent
+10:51
+with the semantic tools in place.
+10:57
+Let's try out another example that requires
+10:59
+some of the memory that was saved as part of this previous email.
+11:03
+So let's pass in this new email from Alice Smith as well.
+11:06
+So same author and it says, hi John.
+11:08
+Any update on my previous ask?
+11:13
+When we invoke it, we can see that it correctly classifies it
+11:16
+as an email that it needs a response to, and that continues
+11:19
+from there.
+11:22
+Let's take a look at the agent trajectory.
+11:26
+So we can see that we have the human message with the new email,
+11:30
+and we can see that it now first calls the search memory tool
+11:34
+with this query Alice Smith
+11:35
+previous request as communication.
+11:38
+So it's trying to figure out what information it has.
+11:41
+It gets back this memory that it saved before. We can see its logic.
+11:46
+And then it calls this write email tool and it writes this email.
+11:51
+And we can see that in its response it says: thanks for following up
+11:54
+regarding the API endpoints documentation.
+11:56
+So this is remember from before, even though it's a completely separate email.
+12:01
+We can see the tool message that it sent a response to Alice.
+12:06
+And then, we can see the final response.
+12:10
+This is an example
+12:11
+of how you can see that the memory tools are saving relevant
+12:14
+information, and then also searching over it in the future.
+12:20
+This is it for this lesson.
+12:21
+So now is a great time to pause and spend a few more minutes
+12:24
+playing around with different emails,
+12:26
+trying out different questions and seeing if I can remember different facts.
+12:31
+See you in the next lesson.

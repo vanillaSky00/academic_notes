@@ -1,0 +1,336 @@
+0:02
+In the previous lesson,
+0:03
+we added in semantic memory to our agent.
+0:06
+We're now going to add in episodic memory.
+0:09
+We're going to add it in in the form a few shot examples.
+0:12
+And we're going to add it in to the triage step.
+0:15
+So as a reminder, episodic memory is experiences.
+0:18
+And in agents this is generally best represented as past agent actions
+0:23
+and as few shot examples that will pass into the prompt.
+0:27
+Let's see this in action.
+0:30
+This should hopefully look familiar to you by now.
+0:32
+This is the basic setup.
+0:33
+We're going to load some environment variables, define our profile,
+0:37
+define our prompt instructions, and define an example email.
+0:43
+Now is where
+0:43
+we normally define the triage logic.
+0:46
+But let's take a pause here and talk about a few shot examples.
+0:52
+The first
+0:52
+thing we need to do is define our long-term memory store.
+0:56
+This is the same as we used in lesson three.
+1:00
+After this,
+1:02
+we can define the data that we want to load as few shot examples.
+1:06
+So first, we need to decide on the email content that we want to store.
+1:11
+So this is actually the same as the example input above,
+1:16
+but we will use this now as a few shot example.
+1:19
+We then put this as part of a larger data model that contains the email.
+1:24
+This is generally the inputs and then the outputs.
+1:28
+In this case we'll call it label and we'll call it respond.
+1:32
+And these outputs are also going to be in the few shot examples that we format.
+1:36
+So this is going to help change the behavior of the agent.
+1:41
+We can
+1:41
+now put this example into the long-term memory store.
+1:45
+We can do this by specifying a namespace.
+1:48
+And so this is similar to before email assistant Lance.
+1:52
+But then notice that here is examples.
+1:54
+Whereas what we use for the semantic
+1:57
+search over facts is collection.
+2:00
+We pass in the ID which is just a Uuid.
+2:03
+And then we pass in this data up here.
+2:07
+Let's add in another data point
+2:10
+so that we can do search over multiple data points
+2:12
+and see which ones are returned.
+2:15
+So here we'll add in a separate one.
+2:17
+This one is a new email sent by Sara Chan.
+2:22
+Let's now simulate searching
+2:23
+and returning these examples in a formatted way.
+2:28
+Before that, we're going to define a simple helper function,
+2:32
+which is going to take in the few shot examples that we retrieved
+2:35
+directly from the store and format them nicely into a string.
+2:39
+This is great because it will allow us to easily see what we retrieved.
+2:43
+And this is also a better format to pass into the LLM than the raw examples.
+2:48
+We can see that once we get the examples back from the store,
+2:52
+we are going to format them into this template which just contains information
+2:55
+about the email subject, email from, email to.
+2:58
+So it's putting it in a nice human readable way.
+3:00
+And then it has this triage result.
+3:03
+This is the outcome of the triage step.
+3:06
+And we're now going to be putting this as part of the prompt.
+3:10
+And so here you can see that for each
+3:12
+example we're taking the email part.
+3:15
+This is the input.
+3:16
+And we're formatting this above.
+3:18
+And then we're putting the result is the label.
+3:20
+This is the output that we put as part of the data that we stored in the store.
+3:26
+So these are just helper functions to take that data and format it nicely.
+3:31
+So let's now simulate searching over.
+3:32
+This is the exact same email that we passed in above.
+3:35
+And I'm going to change something small just so that it's not doing
+3:39
+an exact match.
+3:41
+I'm then going to search over the namespace that we had,
+3:45
+and I'm going to pass in as query parameter, this email data.
+3:49
+I'm going to set limit equals one.
+3:51
+So remember I've stored two pieces of information in the store already.
+3:55
+So it should just fetch the one that is most similar to this.
+4:00
+I get back some results.
+4:01
+And now, let's format them with the helper function that we had above.
+4:10
+We can see that I got back the data point that we stored,
+4:14
+which is slightly different from the data point we passed in,
+4:17
+but it's still semantically very similar.
+4:20
+Let's now start putting this together
+4:22
+into a new triage step that does this few shot example search.
+4:28
+So the first thing we're going to do is define a triage system prompt.
+4:32
+So previously we imported this from a helper file.
+4:35
+But now we're actually define it in code so that we can
+4:37
+modify it if we want.
+4:40
+And we can see down here that we have this few-shot examples section
+4:44
+where we are going to format the examples, and then also add some more
+4:48
+instructions here that basically just say to pay close attention
+4:51
+to these examples.
+4:55
+Let's import a bunch of stuff for the routing step.
+4:59
+So this is all the same as before.
+5:00
+We have some imports. We're going to initialize a chat model.
+5:03
+We have this output schema.
+5:05
+We're going to attach that
+5:06
+and get this LLM that now generates structured information.
+5:09
+And then we're going to import our triage user prompt.
+5:12
+We don't need to import the triage system prompt because we've defined that
+5:15
+above already.
+5:18
+We then have some
+5:18
+code that should look pretty similar to before
+5:22
+it's used to set up the triage router node.
+5:26
+So we're going to create our state.
+5:28
+And we're going to have some imports here.
+5:32
+This is the previous definition of the triage router node.
+5:36
+So how are we going to modify this to account for this few shot example
+5:40
+prompting.
+5:41
+First, we're going to take in a config and a store into the input.
+5:45
+This will be passed through by the main agent.
+5:49
+We're then going to add some logic before the system prompt gets formatted
+5:54
+to basically add in the few shot examples here.
+5:59
+This is the logic that we're going to add.
+6:01
+First, we define the namespace.
+6:03
+This is where to search for the few shot examples.
+6:06
+It's going to be email assistant
+6:08
+and then this is where we're going to use the config.
+6:10
+And we're going to pull in the LangGraph user ID from there.
+6:13
+And then examples. And so this is the namespace.
+6:15
+We're then going to use this to search in the long-term memory store
+6:19
+for the query, which is just a stringified version of the email.
+6:25
+We're then
+6:26
+going to format these few shot examples into a string.
+6:29
+And we're going to update this to pass
+6:31
+in the example string into the system prompt.
+6:35
+After that we can go about creating the rest of our agent.
+6:39
+So we're going to create all the same tools that we had before.
+6:44
+We don't need to redo this because we already created the store.
+6:48
+So we can get rid of that.
+6:51
+We're going to create the tools for managing and searching memories.
+6:55
+We're going to create this prompt and the function for creating it.
+6:59
+We're going to create this response agent.
+7:02
+And we're going to have this config that we're going to use.
+7:07
+We're then going to put together this email agent.
+7:10
+Same as before.
+7:11
+And again we're passing in the store to make sure that it's covered.
+7:17
+Let's now test this email
+7:19
+agent out and see the effect a few shot prompting.
+7:22
+So here we have an example email input from Tom Jones.
+7:26
+Hi John. Want to buy documentation.
+7:29
+Let's call it.
+7:30
+And let's pass in the config with the LangGraph user id of Harrison.
+7:35
+And we can see that by default this email requires a response.
+7:40
+But what if we don't like that?
+7:42
+What we can do is we can add a few shot example
+7:45
+in to our long-term memory, and then that will be pulled in at runtime.
+7:50
+And it will handle future similar emails in a similar way.
+7:54
+So here we can add that with the label of ignore.
+7:58
+So let's now say we want to ignore these types of emails.
+8:01
+We'll put that in a store our name spaces email assistant Harrison.
+8:06
+Because this is the LangGraph user ID examples.
+8:09
+And then we store it in there.
+8:13
+If we run this again,
+8:15
+we can now see that it's classified as ignore.
+8:18
+It's pulling in this few shot example and learning that this should be ignored.
+8:23
+We can also change it slightly.
+8:28
+So I've now
+8:29
+added more question marks and added in Jim.
+8:32
+And we can see that it still gets classified as ignored.
+8:36
+So it's learning to treat similar emails
+8:39
+in a similar way.
+8:42
+If we pass in a different LangGraph user ID, we can see that it's respond.
+8:47
+That's because these few shot are examples are scoped to this individual
+8:51
+LangGraph user ID.
+8:55
+We've now added an episodic memory
+8:58
+to help with updating and learning user preferences for triaging.
+9:03
+This is the end of the lesson.
+9:05
+So it's a great time to pause and play around with different examples
+9:08
+and different LangGraph user IDs, and just generally play around with it
+9:12
+and better understand all the fun and all the learning that it can have.
+9:18
+See you in the next lesson.

@@ -1,0 +1,612 @@
+0:00
+In this lesson we're going to create our base email system.
+0:04
+It's not going to have any memory yet.
+0:05
+We're just going to set it up and get it working.
+0:08
+All right. Let's dive in.
+0:10
+The first thing we're going to want to do is import
+0:13
+some environment variable.
+0:16
+After that,
+0:17
+we're going to start to set up our profile for this email system.
+0:21
+The first part of this is just basic facts about the user.
+0:25
+Like their name and some background about them.
+0:29
+This should be a profile for the users
+0:31
+whose email this assistant will be attempting to respond to.
+0:35
+So you can change this to be whatever you want.
+0:37
+Probably your name and your background.
+0:41
+After that,
+0:42
+we're going to define some prompt instructions.
+0:45
+These are instructions that will get formatted into a larger prompt down below.
+0:51
+There's two parts of this.
+0:52
+The first is triage rules.
+0:55
+These are parts that will go into the triage prompt.
+0:58
+The triage prompt is what is responsible for triaging
+1:02
+the user's email into a few different categories.
+1:05
+There are three to be precise.
+1:07
+Ignore, notify, and respond.
+1:10
+And we can see here that we have instruction for what
+1:14
+type of emails should be classified into each of these categories.
+1:20
+A second instruction
+1:21
+set is instructions for the main agent.
+1:24
+This main agent gets called after we decide that we should respond
+1:28
+to the email.
+1:30
+So this contains instructions for what to do in that case
+1:34
+for both the profile and the prompt instructions,
+1:37
+these will get formatted into larger prompts down below.
+1:41
+The reason that we're pulling them out is twofold. One,
+1:45
+this makes it more modular and easier to see and visualize.
+1:49
+Two in the future, some of these will actually be generated as part of memory.
+1:55
+And so we want them to be separate from the rest of the prompt,
+1:58
+which we are not going to update as part of memory.
+2:04
+After that, let's define an example email.
+2:07
+This is just to see what the schema of the emails that we'll be working with are.
+2:12
+There's four main parts: a from email address, a to email address,
+2:17
+a subject for that email and then the body.
+2:21
+We'll use this to test out some of the agent parts down below.
+2:25
+You can change this to be whatever you want.
+2:31
+Let's now define the first part of the agent.
+2:34
+This will be the triage step.
+2:36
+First, we're going to set up some imports.
+2:42
+Next, we're going to choose the model that we want to use for this triage step.
+2:46
+We're going to use OpenAI's GPT 4o-mini model.
+2:50
+But you can use whatever one you want.
+2:55
+After that,
+2:56
+we'll define the schema that we want this triage step to output.
+3:01
+We'll use a pydantic base model here.
+3:03
+And it will have two fields.
+3:05
+First, will be a reasoning field.
+3:06
+This is where the LLM can just generate some reasoning for what it decided to do.
+3:12
+And then next, is the main part the classification step.
+3:15
+This should be one of ignore, respond and notify.
+3:21
+We're going to bind
+3:22
+this type to the LLM with with structured output.
+3:26
+This will make it so that LLM router always returns information in this schema.
+3:36
+Now we're going to import some prompts for the triage step.
+3:39
+There's two that we're going to be working with the system prompt,
+3:42
+and the user prompt.
+3:46
+Let's take a look at the system prompt.
+3:49
+We can see here that it's got a few different sections.
+3:52
+First, is a role section.
+3:53
+This is where some background about who the AI should be is placed.
+3:58
+Then we have the background on the user themselves.
+4:00
+Then we have some instructions.
+4:02
+This defines the three different categories
+4:05
+of things that we want to classify emails into.
+4:08
+And then we have a rule section.
+4:10
+This is where we will format a lot of our instructions into.
+4:13
+And so you can see the here that there are these little curly brackets.
+4:17
+This is actually a prompt template.
+4:19
+This means that there are parts of this prompt that are not filled in.
+4:22
+And we're going to do that with different variables.
+4:24
+And we'll see how to do that.
+4:25
+And then finally we can see that there's a section for few shot examples.
+4:34
+If we look at the user prompt we can see that it's much simpler.
+4:37
+We can see that basically just formats the email into a pretty simple input.
+4:46
+Let's test this out.
+4:47
+We can see here that we call triage system prompt dot format.
+4:50
+This will format the prompt template with a bunch of variables that we pass in.
+4:55
+We use information in profile such as the full name,
+4:58
+the name, and the user profile background to populate some things.
+5:03
+Examples we set as none because we don't have any of these yet.
+5:06
+And then the triage_no,
+5:07
+triage_notify, and triage_email parts we take
+5:11
+from the prompt instructions.
+5:14
+We do the same with the user prompt,
+5:16
+formatting it with information from the example email that we have.
+5:23
+With that done, we can now call the LLM router,
+5:26
+which is this LLM with the router schema attached.
+5:30
+We pass in two messages a system message with a system prompt as content,
+5:34
+and then a user message with the user prompt as content.
+5:39
+If we take a look
+5:40
+at what result is, we can see that there's two parts.
+5:44
+There's a reasoning string,
+5:45
+this is the logic of the LLM.
+5:47
+And then there's a classification of the LLM.
+5:49
+In this case it's saying to respond.
+5:53
+Now's a good time to pause and try it out with some different emails
+5:56
+or different instructions and see what you got.
+6:02
+With the logic of the triage, step out of the way.
+6:04
+We're now going to tackle the main agent.
+6:07
+First, we're going to define some tools.
+6:09
+So we're going to import the tool wrapper from LangChain.
+6:13
+The first tool we're going to define is a tool for writing emails.
+6:16
+This tool will take in three things.
+6:18
+An email address to send the email to,
+6:21
+a subject of the email, and the content of the email.
+6:24
+Right here we just have a fake dummy tool.
+6:27
+So we're not actually implement in any logic in it.
+6:30
+In the real world,
+6:31
+you'll connect this to your Gmail API or outlook API to actually send the email,
+6:36
+but here we're just going to mock it out.
+6:40
+The next tool is a schedule meeting tool.
+6:43
+This is going to take in a list of attendees, a subject, a duration,
+6:47
+and a preferred day, and it will schedule a calendar meeting.
+6:51
+Again, this is just a mock tool for now.
+6:54
+In the real world you would connect this to real APIs.
+7:00
+And the final
+7:00
+tool we're going to define is a tool that will check the calendar availability.
+7:04
+So we'll take in a day
+7:05
+and it will return the availability for the user on that day.
+7:09
+Again, we're just mocking this tool out.
+7:11
+So we're always going to return 9 a.m., 2 p.m.
+7:14
+and 4 p.m..
+7:18
+With our tools defined,
+7:20
+we're now going to go ahead and create the prompt for this agent.
+7:24
+So this is actually going to be a function
+7:26
+that takes in the state of the agent and returns a list of messages.
+7:31
+This list of messages is going to consist of two parts.
+7:33
+One will be the messages already in the state.
+7:36
+And then the second will be a system message that we put at the start.
+7:41
+What exactly is in this system message?
+7:46
+If we print out the prompt,
+7:47
+we can see that there is a little bit about the role that the AI is taking on.
+7:52
+There's then a section that lists out the tools that it has access to.
+7:56
+And then there's a section for the custom instructions.
+7:59
+And we're going to pull these in from the prompt instructions
+8:02
+that we defined above.
+8:07
+Let's now build the agent. We're going to use Create
+8:10
+React agent which is an off the shelf agent implementation.
+8:18
+We're going to create this agent
+8:19
+by calling Create React agent and passing in three things.
+8:23
+First is a string corresponding to the model to use.
+8:27
+In this case we're going to use OpenAI and the GPT 4o model.
+8:32
+Next we're going to pass in a list of tools.
+8:34
+In this case the three tools we have defined above.
+8:37
+And then finally we're going to pass in the prompt.
+8:40
+In this case, the function for creating the prompt that we have defined above.
+8:45
+We can now try it out.
+8:46
+So we're going to invoke it with the list of messages.
+8:48
+And in this case let's pass in something like "what's my
+8:53
+availability for
+8:57
+Tuesday?"
+9:01
+We'll get back a response.
+9:03
+This response will have a list of messages as part of the state.
+9:07
+If we print out the last message in this list of messages,
+9:11
+we can see that it responds with:
+9:12
+"You have the following available time slots on Tuesday 9 a.m.,
+9:15
+2 p.m., and 4 p.m." Great.
+9:20
+If you remember, these are the times that we hard
+9:23
+coded our calendar tool to say that we were available.
+9:28
+Let's now put it all together and create the overall agent.
+9:32
+The first thing we're going to do is define the state of the agent.
+9:36
+Here, the state is going to consist of two parts.
+9:39
+First is an email input.
+9:41
+This is what the user will pass in.
+9:43
+This will contain all the information about the email.
+9:47
+Second will be a list of messages.
+9:49
+This is where the agent will do its work.
+9:54
+After defining the state,
+9:55
+let's import some things that we'll use to build the rest of the agent.
+10:01
+We're going to first define
+10:02
+a node for doing the triage step.
+10:06
+So this is going to take in the state of the agent
+10:08
+and it's going to return a command.
+10:10
+A command is going to say two things.
+10:12
+And we'll see this later on. But it will say two things.
+10:15
+It will return an update to the state and then it will say where to go.
+10:19
+And so these two values here are possible values of where to go after this
+10:24
+triage node.
+10:25
+We could either go to the response agent or we could go to the end of the graph.
+10:29
+This is going to depend on the result of the triage step.
+10:33
+So let's actually implement this logic.
+10:37
+The first thing
+10:38
+we're going to do is pull apart the email and put into a few different
+10:42
+things that we're going to pass into the prompt down below.
+10:44
+This is just done for convenience.
+10:46
+There's no real logic here.
+10:50
+Next, we're going to create the system prompt.
+10:53
+This is the same as above.
+10:57
+After that we're going to create the user prompt.
+11:00
+This is using the author, to, and subject
+11:03
+an email thread information from the email input.
+11:08
+We're then going to call the LLM router that we have defined above.
+11:11
+Make sure this is LLM router not LLM.
+11:13
+This is the one with the output that will have the classification schema.
+11:19
+We're then going to handle the three different types
+11:22
+of classification that can occur.
+11:24
+Respond, ignore and notify.
+11:27
+If it's something
+11:28
+else we're going to raise a value here that's unexpected.
+11:32
+And at the end we're going to return this command.
+11:34
+This basically tells the graph which node to go to and which update to apply.
+11:40
+So each of these branches for each of these classification results
+11:44
+should set a go-to value.
+11:46
+And an update value.
+11:50
+Let's take a look at respond.
+11:52
+This is what happens when we want to respond to the email.
+11:55
+First we're going to print out some nice stuff.
+11:56
+This is just so that we can see what's going on.
+11:59
+Our go-to is going to be response agent.
+12:02
+So we want to go to the response agent afterwards.
+12:06
+The update we're going to apply
+12:07
+is we're going to add a new message to this list of messages.
+12:10
+It's going to be a user message.
+12:12
+And it's going to have this content respond to the email.
+12:15
+And then it's going to paste in the email input there.
+12:20
+When the
+12:21
+LLM calls ignore we're first going to print out something.
+12:24
+This is similarly just for logging.
+12:26
+Our update is going to be none.
+12:27
+So we're not going to update the state at all.
+12:30
+And then we're going to call go to.
+12:31
+We're going to go to the end node.
+12:35
+What if it's notify?
+12:37
+Here for mocking.
+12:38
+It's actually going to be pretty similar to ignore.
+12:39
+We're going to print something out with a slightly different print statement.
+12:43
+And then we're still going to apply no update.
+12:45
+And we're going to go to the end of the graph.
+12:47
+In real life this would probably do something else.
+12:49
+This would go to some sort of notification system.
+12:51
+So you might want to go to a different node
+12:53
+if you add that into the graph.
+12:55
+But here we don't have that.
+12:57
+So we're just going to do a simple go to the end.
+13:01
+And that completes our triage node.
+13:03
+Pretty complex.
+13:04
+But hopefully you understand. At a high level it's basically
+13:07
+formatting a prompt calling the LLM.
+13:10
+And then based on the output deciding which node to go to next.
+13:17
+Let's
+13:17
+put it all together and define our email agent.
+13:20
+So we're going to use state graph which is an agent
+13:23
+that operates on a particular state.
+13:25
+The state that it's going to operate is on the state that we defined above.
+13:29
+So it has an email and a list of messages.
+13:32
+We're going to add two nodes.
+13:33
+The triage node which we defined above.
+13:36
+And then the response agent which is a sub agent.
+13:38
+This is the react agent that we first defined.
+13:41
+We're going to add an edge from start to the triage router.
+13:44
+This is basically just saying
+13:46
+that the first node we want to go into after the start is this triage step.
+13:51
+And then we're going to compile this agent.
+13:55
+Before using it,
+13:56
+let's check out what it looks like. So we can use this
+14:00
+draw mermaid PNG method on the line
+14:03
+graph object to get a nice mermaid drawing of what it looks like.
+14:07
+And we're going to pass this x ray equals true.
+14:09
+This is just allowing us to zoom in to this response agent.
+14:13
+Because this is a sub agent in itself.
+14:15
+So we want to visualize it.
+14:17
+So if we look at the graph we can see that we first go to this triage step.
+14:21
+From there either goes to end or it goes into the response agent.
+14:24
+This response agent is of course an agent itself.
+14:27
+It's got this nice little react loop here of an LLM, calling something
+14:31
+and then calling some tools and then going back, or it can finish.
+14:38
+Let's try it out on a few emails.
+14:40
+So, first here's one that looks like some spam.
+14:43
+It's spamming some nice sales email.
+14:45
+Hopefully this will be ignored by the email
+14:48
+agent.
+14:52
+Let's call it
+14:52
+with this email input and we can see that it prints out this classification
+14:56
+Ignore.
+14:57
+So here we can tell that it's successfully ignoring this
+15:00
+email.
+15:05
+Let's try out another example.
+15:06
+This time one that expects a response.
+15:12
+If we call it
+15:13
+we can see that we print out this classification respond.
+15:16
+This means that we're getting a response.
+15:19
+But what exactly is happening? In order to see that,
+15:23
+let's take a look at the list of messages.
+15:26
+First, we can see the human message.
+15:28
+This is the human message that the triage node puts in to the list of messages.
+15:33
+We can then see that it calls the right email tool. In here
+15:37
+it responds to Alice thanking her for reaching out.
+15:42
+We can then
+15:42
+see that there's a tool message basically just saying that we sent this message.
+15:46
+And then we can see a final AI message saying, I've responded to Alice's email.
+15:50
+Blah blah blah.
+15:52
+This is the complete email agent in action.
+15:55
+It first triages the email and then it handles it accordingly if it's meant to.
+16:01
+Now's a good time to pause and try out some other emails.
+16:04
+Try out some other instructions.
+16:06
+Try out messing around with the system prompt and things like that.
+16:10
+This concludes building the email agent, but it still doesn't have any memory.
+16:14
+And so that's what we're going to add in in the next lessons.
